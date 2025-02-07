@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { interval, Subject, combineLatest } from 'rxjs';
+import { interval, Subject } from 'rxjs';
 import {
   map,
   groupBy,
@@ -7,8 +7,9 @@ import {
   bufferCount,
   pairwise,
   scan,
-  startWith,
 } from 'rxjs/operators';
+import { PriceRecord } from './model';
+import { calcTrend } from './calc-trend';
 
 @Injectable({
   providedIn: 'root',
@@ -22,14 +23,6 @@ export class PriceService {
   );
 
   userTracking$ = new Subject<{ productId: number; show: boolean }>();
-
-  userPreferences$ = this.userTracking$.pipe(
-    scan(
-      (acc, update) => ({ ...acc, [update.productId]: update.show }),
-      {} as Record<number, boolean>
-    ), 
-    startWith({} as Record<number, boolean>)
-  );
 
   processedStream$ = this.priceStream$.pipe(
     groupBy((data) => data.productId),
@@ -46,26 +39,17 @@ export class PriceService {
         map(([prev, curr]) => ({
           productId: curr.productId,
           avgPrice: curr.avgPrice,
-          trend:
-            prev.avgPrice < curr.avgPrice
-              ? 'up'
-              : prev.avgPrice > curr.avgPrice
-              ? 'down'
-              : 'no change',
+          trend: calcTrend([prev.avgPrice, curr.avgPrice])
         }))
       )
     )
   );
 
-  prices$ = combineLatest([this.processedStream$, this.userPreferences$]).pipe(
-    scan((acc, [marketData, userPrefs]) => {
-      if (userPrefs[marketData.productId] === false) {
-        delete acc[marketData.productId];
-      } else {
-        acc[marketData.productId] = marketData;
-      }
+  prices$ = this.processedStream$.pipe(
+    scan((acc, marketData) => {
+      acc[marketData.productId] = marketData;
       return { ...acc };
     }, {} as Record<number, { productId: number; avgPrice: number; trend: string }>),
-    map((acc) => Object.values(acc))
+    map((acc) => Object.values(acc) as PriceRecord[])
   );
 }

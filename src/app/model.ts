@@ -5,7 +5,7 @@ export type PriceEvent = {
   price: number;
 };
 
-export type Trend = 'up' | 'down' | 'no change';
+export type Trend = 'up' | 'down' | 'no change' | 'no trend';
 
 export type PriceRecord = {
   productId: number;

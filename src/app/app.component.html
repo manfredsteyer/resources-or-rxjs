@@ -1,11 +1,38 @@
-<h1>Prices</h1>
+<div class="container">
+  <div class="item">
+    <h2>Prices with Signals</h2>
 
-<table>
-  @for(record of pricesResource.value(); track record.productId) {
-    <tr>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-  }
-</table>
+    <table>
+      <tr>
+        <th>ProductId</th>
+        <th>Avg Price</th>
+        <th>Trend</th>
+      </tr>
+      @for(record of filtered(); track record.productId) {
+      <tr>
+        <td>{{ record.productId }}</td>
+        <td>{{ record.avgPrice | number : ".2-2" }}</td>
+        <td>{{ record.trend }}</td>
+      </tr>
+      }
+    </table>
+  </div>
+  <div class="item">
+    <h2>Prices with RxJS</h2>
+
+    <table>
+      <tr>
+        <th>ProductId</th>
+        <th>Avg Price</th>
+        <th>Trend</th>
+      </tr>
+      @for(record of filtered$ | async; track record.productId) {
+      <tr>
+        <td>{{ record.productId }}</td>
+        <td>{{ record.avgPrice | number : ".2-2" }}</td>
+        <td>{{ record.trend }}</td>
+      </tr>
+      }
+    </table>
+  </div>
+</div>

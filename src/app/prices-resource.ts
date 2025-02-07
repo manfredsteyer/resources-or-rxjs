@@ -1,10 +1,12 @@
 import { resource, signal } from '@angular/core';
 import { PriceEvent, PriceRecord, ProductToPriceHistory, StreamItem, Trend } from './model';
+import { calcTrend } from './calc-trend';
 
 const history: ProductToPriceHistory = {};
 
 export function pricesResource() {
   return resource({
+    defaultValue: [],
     stream: async (param) => {
       const stream = signal<StreamItem<PriceRecord[]>>({ value: [] });
 
@@ -58,10 +60,15 @@ function toResult(history: ProductToPriceHistory): PriceRecord[] {
           trend: calcTrend(history[productId]),
         } as PriceRecord)
     )
+    // mimic behavior of buffer and pairwise
+    .filter(record => record.avgPrice > -1 && record.trend !== 'no trend')
     .sort((record) => record.productId);
 }
 
 function calcAvg(prices: number[]): number {
+  if (prices.length != 10) {
+    return -1;
+  }
   return prices.reduce((acc, cur) => acc + cur, 0) / prices.length;
 }
 
@@ -73,23 +80,4 @@ function ensureProduct(priceEvent: PriceEvent) {
   if (!history[priceEvent.productId]) {
     history[priceEvent.productId] = [];
   }
-}
-
-function calcTrend(prices: number[]): Trend {
-  if (prices.length < 2) {
-    return 'no change';
-  }
-
-  const latest = prices.at(-1) as number;
-  const before = prices.at(-2) as number;
-
-  if (latest < before) {
-    return 'down';
-  }
-
-  if (before < latest) {
-    return 'up';
-  }
-
-  return 'no change';
 }
