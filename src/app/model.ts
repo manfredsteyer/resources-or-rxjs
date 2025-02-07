@@ -1,5 +1,15 @@
 export type ProductToPriceHistory = Record<number, number[]>;
 
+export type ProductToFormerAvg = Record<number, number>;
+
+export type ProductToPriceRecord = Record<number, PriceRecord>;
+
+export type ProductHistory = {
+  priceHistory: ProductToPriceHistory;
+  formerAvg: ProductToFormerAvg;
+  priceRecords: ProductToPriceRecord;
+};
+
 export type PriceEvent = {
   productId: number;
   price: number;

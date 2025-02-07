@@ -1,18 +1,11 @@
 import { Trend } from './model';
 
-export function calcTrend(prices: number[]): Trend {
-  if (prices.length < 2) {
-    return 'no trend';
-  }
-
-  const latest = prices.at(-1) as number;
-  const before = prices.at(-2) as number;
-
-  if (latest < before) {
+export function calcTrend(formerAvg: number, currentAvg: number): Trend {
+  if (currentAvg < formerAvg) {
     return 'down';
   }
 
-  if (before < latest) {
+  if (formerAvg < currentAvg) {
     return 'up';
   }
 

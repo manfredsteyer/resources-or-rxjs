@@ -1,10 +1,26 @@
+//
+// This is a _negative_ example for not using RxJS for a
+// case where its possibilities would provide a huge advantage
+//
+
 import { resource, signal } from '@angular/core';
-import { PriceEvent, PriceRecord, ProductToPriceHistory, StreamItem, Trend } from './model';
+import {
+  PriceEvent,
+  PriceRecord,
+  ProductHistory,
+  ProductToPriceHistory,
+  StreamItem,
+} from './model';
 import { calcTrend } from './calc-trend';
 
-const history: ProductToPriceHistory = {};
-
 export function pricesResource() {
+
+  const history: ProductHistory = {
+    priceHistory: {},
+    formerAvg: {},
+    priceRecords: {},
+  };
+
   return resource({
     defaultValue: [],
     stream: async (param) => {
@@ -14,7 +30,7 @@ export function pricesResource() {
         const event = produceEvent();
         processEvent(event, history);
         const result = toResult(history);
-        stream.set({value: result});
+        stream.set({ value: result });
       }, 10);
 
       param.abortSignal.addEventListener('abort', () => {
@@ -33,50 +49,64 @@ function produceEvent(): PriceEvent {
   };
 }
 
-function processEvent(
-  priceEvent: PriceEvent,
-  history: ProductToPriceHistory
-): void {
-  ensureProduct(priceEvent);
+function processEvent(priceEvent: PriceEvent, history: ProductHistory): void {
+  ensureProduct(priceEvent, history.priceHistory);
 
-  const entry = history[priceEvent.productId];
+  const entry = history.priceHistory[priceEvent.productId];
   entry.push(priceEvent.price);
-
   const updated = calcWindow(entry, 10);
-  history[priceEvent.productId] = updated;
-}
+  history.priceHistory[priceEvent.productId] = updated;
 
-function toResult(history: ProductToPriceHistory): PriceRecord[] {
-  const productIds = Object.keys(history).map(
-    (productId) => parseInt(productId) as keyof ProductToPriceHistory
-  );
-
-  return productIds
-    .map(
-      (productId) =>
-        ({
-          productId,
-          avgPrice: calcAvg(history[productId]),
-          trend: calcTrend(history[productId]),
-        } as PriceRecord)
-    )
-    // mimic behavior of buffer and pairwise
-    .filter(record => record.avgPrice > -1 && record.trend !== 'no trend')
-    .sort((record) => record.productId);
-}
-
-function calcAvg(prices: number[]): number {
-  if (prices.length != 10) {
-    return -1;
+  const record = toPriceRecord(priceEvent.productId, history);
+  if (record.avgPrice > -1 && record.trend !== 'no trend') {
+    history.priceRecords[priceEvent.productId] = record;
   }
-  return prices.reduce((acc, cur) => acc + cur, 0) / prices.length;
+  if (record.avgPrice > -1) {
+    history.formerAvg[priceEvent.productId] = record.avgPrice;
+  }
+}
+
+function toResult(history: ProductHistory): PriceRecord[] {
+  return Object.values(history.priceRecords);
+}
+
+function toPriceRecord(
+  productId: number,
+  history: ProductHistory
+): PriceRecord {
+  const prices = history.priceHistory[productId];
+
+  if (prices.length != 10) {
+    return {
+      productId,
+      avgPrice: -1,
+      trend: 'no trend',
+    };
+  }
+
+  const avg = prices.reduce((acc, cur) => acc + cur, 0) / prices.length;
+  const formerAvg = history.formerAvg[productId];
+
+  if (typeof formerAvg === 'undefined') {
+    return {
+      productId,
+      avgPrice: avg,
+      trend: 'no trend',
+    };
+  }
+
+  return {
+    productId,
+    avgPrice: avg,
+    trend: calcTrend(formerAvg, avg),
+  };
 }
 
 function calcWindow(entry: number[], windowSize: number) {
   return entry.slice(Math.max(0, entry.length - windowSize), entry.length);
 }
 
-function ensureProduct(priceEvent: PriceEvent) {
+function ensureProduct(priceEvent: PriceEvent, history: ProductToPriceHistory) {
   if (!history[priceEvent.productId]) {
     history[priceEvent.productId] = [];
   }

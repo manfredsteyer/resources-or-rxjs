@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { interval, Subject } from 'rxjs';
+import { interval } from 'rxjs';
 import {
   map,
   groupBy,
@@ -22,8 +22,6 @@ export class PriceService {
     }))
   );
 
-  userTracking$ = new Subject<{ productId: number; show: boolean }>();
-
   processedStream$ = this.priceStream$.pipe(
     groupBy((data) => data.productId),
     mergeMap((group$) =>
@@ -33,13 +31,11 @@ export class PriceService {
           productId: group$.key,
           avgPrice: prices.reduce((sum, p) => sum + p.price, 0) / prices.length,
         })),
-
         pairwise(),
-
         map(([prev, curr]) => ({
           productId: curr.productId,
           avgPrice: curr.avgPrice,
-          trend: calcTrend([prev.avgPrice, curr.avgPrice])
+          trend: calcTrend(prev.avgPrice, curr.avgPrice)
         }))
       )
     )
@@ -47,9 +43,11 @@ export class PriceService {
 
   prices$ = this.processedStream$.pipe(
     scan((acc, marketData) => {
-      acc[marketData.productId] = marketData;
-      return { ...acc };
-    }, {} as Record<number, { productId: number; avgPrice: number; trend: string }>),
-    map((acc) => Object.values(acc) as PriceRecord[])
+      return { 
+        ...acc,
+        [marketData.productId]: marketData
+      };
+    }, {} as Record<number, PriceRecord>),
+    map((acc) => Object.values(acc))
   );
 }

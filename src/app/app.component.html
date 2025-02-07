@@ -8,7 +8,7 @@
         <th>Avg Price</th>
         <th>Trend</th>
       </tr>
-      @for(record of filtered(); track record.productId) {
+      @for(record of pricesResource.value(); track record.productId) {
       <tr>
         <td>{{ record.productId }}</td>
         <td>{{ record.avgPrice | number : ".2-2" }}</td>
@@ -26,7 +26,26 @@
         <th>Avg Price</th>
         <th>Trend</th>
       </tr>
-      @for(record of filtered$ | async; track record.productId) {
+      @for(record of prices$ | async; track record.productId) {
+      <tr>
+        <td>{{ record.productId }}</td>
+        <td>{{ record.avgPrice | number : ".2-2" }}</td>
+        <td>{{ record.trend }}</td>
+      </tr>
+      }
+    </table>
+  </div>
+
+  <div class="item">
+    <h2>Prices with RxResource</h2>
+
+    <table>
+      <tr>
+        <th>ProductId</th>
+        <th>Avg Price</th>
+        <th>Trend</th>
+      </tr>
+      @for(record of pricesRxResource.value(); track record.productId) {
       <tr>
         <td>{{ record.productId }}</td>
         <td>{{ record.avgPrice | number : ".2-2" }}</td>
