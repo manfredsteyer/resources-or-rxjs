@@ -15,14 +15,14 @@ import { calcTrend } from './calc-trend';
   providedIn: 'root',
 })
 export class PriceService {
-  priceStream$ = interval(10).pipe(
+  private priceStream$ = interval(10).pipe(
     map(() => ({
       productId: Math.floor(Math.random() * 10),
       price: Math.floor(Math.random() * 201) + 100,
     }))
   );
 
-  processedStream$ = this.priceStream$.pipe(
+  private statisticStream$ = this.priceStream$.pipe(
     groupBy((data) => data.productId),
     mergeMap((group$) =>
       group$.pipe(
@@ -41,7 +41,7 @@ export class PriceService {
     )
   );
 
-  prices$ = this.processedStream$.pipe(
+  prices$ = this.statisticStream$.pipe(
     scan((acc, marketData) => {
       return { 
         ...acc,
